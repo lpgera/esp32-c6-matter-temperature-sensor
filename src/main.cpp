@@ -14,6 +14,8 @@ MatterHumiditySensor humiditySensor;
 MatterPressureSensor pressureSensor;
 uint32_t buttonTimestamp = 0;
 bool buttonState = false;
+uint32_t externalButtonTimestamp = 0;
+bool externalButtonState = false;
 
 bool commissioningState = true;
 bool ledState = false;
@@ -40,6 +42,7 @@ void setup() {
     Serial.begin(115200);
     pinMode(BOOT_PIN, INPUT_PULLUP);
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(GPIO_NUM_20, INPUT_PULLDOWN);
     bme.begin(0x76);
 
     bme_temp->getEvent(&temperatureEvent);
@@ -82,6 +85,16 @@ void loop() {
         buttonTimestamp = millis();
         buttonState = true;
     }
+
+    bool newExternalButtonState = digitalRead(GPIO_NUM_20);
+    if (externalButtonState != newExternalButtonState && millis() - externalButtonTimestamp > 100) {
+        externalButtonState = newExternalButtonState;
+        externalButtonTimestamp = millis();
+        if (newExternalButtonState) {
+            Serial.println("Button pressed");
+        }
+    }
+
     if (buttonState && millis() - buttonTimestamp > 5000) {
         Serial.println("Decommissioning...");
         ArduinoMatter::decommission();
